@@ -91,15 +91,6 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
-    // Criar entrada na tabela streamings para representar a pasta
-    const [result] = await db.execute(
-      `INSERT INTO streamings (
-        codigo_cliente, codigo_servidor, usuario, senha, senha_transmissao,
-        espectadores, bitrate, espaco, ftp_dir, identificacao, email,
-        data_cadastro, aplicacao, status
-      ) VALUES (?, ?, ?, '', '', 100, 2500, 1000, ?, ?, ?, NOW(), 'live', 1)`,
-      [userId, serverId, userLogin, `/home/streaming/${userLogin}/${sanitizedName}`, sanitizedName, req.user.email]
-    );
 
     try {
       // Garantir que estrutura completa do usuário existe
@@ -125,8 +116,6 @@ router.post('/', authMiddleware, async (req, res) => {
       
     } catch (sshError) {
       console.error('Erro ao criar pasta no servidor:', sshError);
-      // Remover entrada do banco se falhou no servidor
-      await db.execute('DELETE FROM streamings WHERE codigo = ?', [result.insertId]);
       return res.status(500).json({ 
         error: 'Erro ao criar pasta no servidor',
         details: sshError.message 
@@ -134,7 +123,7 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 
     res.status(201).json({
-      id: result.insertId,
+      id: Date.now(), // ID temporário para compatibilidade
       nome: sanitizedName,
       original_name: nome,
       sanitized: sanitizedName !== nome.toLowerCase(),
